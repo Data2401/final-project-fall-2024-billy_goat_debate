@@ -1,0 +1,356 @@
+---
+title: "Final Project"
+author: "Billy Huynh"
+date: "2024-11-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+#install.packages("worldfootballR")
+#install.packages("hrbrthemes")
+library(hrbrthemes)
+library(worldfootballR)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r Getting Data}
+messi_url <- "https://fbref.com/en/players/d70ce98e/Lionel-Messi"
+# messi_GA <- fb_player_goal_logs(player_urls = messi_url, goals_or_assists = "both")
+# messi_GA <- messi_GA %>% mutate(Name = "Messi")
+ronaldo_url <- "https://fbref.com/en/players/dea698d9/Cristiano-Ronaldo"
+# ronaldo_GA <- fb_player_goal_logs(player_urls = ronaldo_url, goals_or_assists = "both")
+# ronaldo_GA <- ronaldo_GA %>% mutate(Name = "Ronaldo")
+# ibra_url <- "https://fbref.com/en/players/4cde5509/Zlatan-Ibrahimovic"
+# ibra_GA <- fb_player_goal_logs(player_urls = ibra_url, goals_or_assists = "both")
+# ibra_GA <- ibra_GA %>% mutate(Name = "Ibrahimovic")
+# suarez_url <- "https://fbref.com/en/players/a6154613/Luis-Suarez"
+# suarez_GA <- fb_player_goal_logs(player_urls = suarez_url, goals_or_assists = "both")
+# suarez_GA <- suarez_GA %>% mutate(Name = "Suarez")
+# lewy_url <- "https://fbref.com/en/players/8d78e732/Robert-Lewandowski"
+# lewy_GA <- fb_player_goal_logs(player_urls = lewy_url, goals_or_assists = "both")
+# lewy_GA <- lewy_GA %>% mutate(Name = "Lewandowski")
+# cavani_url <- "https://fbref.com/en/players/527f063d/Edinson-Cavani"
+# cavani_GA <- fb_player_goal_logs(player_urls = cavani_url, goals_or_assists = "both")
+# cavani_GA <- cavani_GA %>% mutate(Name = "Cavani")
+# aguero_url <- "https://fbref.com/en/players/4d034881/Sergio-Aguero"
+# aguero_GA <- fb_player_goal_logs(player_urls = aguero_url, goals_or_assists = "both")
+# aguero_GA <- aguero_GA %>% mutate(Name = "Aguero")
+# hunt_url <- "https://fbref.com/en/players/5042e5c2/Klaas-Jan-Huntelaar"
+# hunt_GA <- fb_player_goal_logs(player_urls = hunt_url, goals_or_assists = "both")
+# hunt_GA <- hunt_GA %>% mutate(Name = "Huntelaar")
+# benzema_url <- "https://fbref.com/en/players/70d74ece/Karim-Benzema"
+# benzema_GA <- fb_player_goal_logs(player_urls = benzema_url, goals_or_assists = "both")
+# benzema_GA <- benzema_GA %>% mutate(Name = "Benzema")
+# eto_url <- "https://fbref.com/en/players/06420c93/Samuel-Etoo"
+# eto_GA <- fb_player_goal_logs(player_urls = eto_url, goals_or_assists = "both")
+# eto_GA <- eto_GA %>% mutate(Name = "Eto'o")
+# rooney_url <- "https://fbref.com/en/players/f07be45a/Wayne-Rooney"
+# rooney_GA <- fb_player_goal_logs(player_urls = rooney_url, goals_or_assists = "both")
+# rooney_GA <- rooney_GA %>% mutate(Name = "Rooney")
+# dzeko_url <- "https://fbref.com/en/players/3bb7f478/Edin-Dzeko"
+# dzeko_GA <- fb_player_goal_logs(player_urls = dzeko_url, goals_or_assists = "both")
+# dzeko_GA <- dzeko_GA %>% mutate(Name = "Dzeko")
+# higuain_url <- "https://fbref.com/en/players/8a08491a/Gonzalo-Higuain"
+# higuain_GA <- fb_player_goal_logs(player_urls = higuain_url, goals_or_assists = "both")
+# higuain_GA <- higuain_GA %>% mutate(Name = "Higuain")
+# henry_url <- "https://fbref.com/en/players/c0c5ee74/Thierry-Henry"
+# henry_GA <- fb_player_goal_logs(player_urls = henry_url, goals_or_assists = "both")
+# henry_GA <- henry_GA %>% mutate(Name = "Henry")
+# klose_url <- "https://fbref.com/en/players/5e36a0dd/Miroslav-Klose"
+# klose_GA <- fb_player_goal_logs(player_urls = klose_url, goals_or_assists = "both")
+# klose_GA <- klose_GA %>% mutate(Name = "Klose")
+# all_GA <- rbind.data.frame(messi_GA, ronaldo_GA, ibra_GA, suarez_GA, cavani_GA, lewy_GA, aguero_GA, hunt_GA, benzema_GA, eto_GA, rooney_GA, dzeko_GA, higuain_GA, henry_GA, klose_GA)
+# 
+
+# all_GA <- all_GA %>% select(-X)
+# all_GA <- all_GA %>% filter(Name != "Huntelaar")
+# all_GA <- rbind.data.frame(all_GA, hunt_GA)
+# write.csv(all_GA, "all_GA.csv")
+all_GA <- read.csv("all_GA.csv")
+all_GA$Date <- as.Date(all_GA$Date)
+all_GA <- all_GA %>% mutate(Year = year(Date))
+GOAT_GA <- all_GA %>% filter(Name == "Ronaldo" | Name == "Messi")
+```
+
+```{r G+A All, fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+all_GA %>% 
+  group_by(Name, Goal_or_Assist) %>% 
+  summarise(GC = n()) %>%  
+  ggplot() +
+  aes(y = reorder(Name, GC),
+      x = GC) +
+  geom_col(color = "white", aes(fill = Goal_or_Assist)) +
+  labs(title = "Total Career Goals + Assists of Top Strikers/Forwards in the 21st Century", subtitle = "Source: FBref", fill = "Type") +
+  ylab("Player") +
+  xlab("Total Goal Contribution") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 18,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+```{r Trophies, fig.height=6, fig.width=12}
+all_trophies <- read.csv("Trophies.csv")
+all_trophies %>%  filter(!is.na(Trophies)) %>% ggplot(aes(x = Trophies, y = reorder(Player, Trophies))) +
+  geom_col(color = "white", fill = "gold") +
+  labs(title = "Footballers with Highest Total Career Trophies as of October 2024", subtitle = "Source: talkSPORT") +
+  xlab("Number of Trophies") +
+  ylab("Player") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+ 
+```
+```{r Ballon Dors, fig.height=6, fig.width=12}
+ballondor <- read.csv("ballondor.csv")
+ballondor <- ballondor %>% 
+  pivot_longer(cols = c(Winner, Runner.up, Third.Place), 
+               names_to = "Position", 
+               values_to = "Count") %>% 
+  mutate(Position = replace(Position, Position == "Runner.up", "2nd Place")) %>% 
+  mutate(Position = replace(Position, Position == "Third.Place", "3rd Place")) %>% 
+  mutate(Position = factor(Position, levels = c("3rd Place", "2nd Place", "Winner")))
+
+ballondor %>% ggplot(aes(x = Count, y = reorder(Player, Count))) +
+  geom_col(color = "white", aes(fill = Position)) +
+  scale_fill_manual(values = c("orange3", "lightgrey", "gold2")) +
+  labs(title = "Footballers with Highest Total Ballon D'or Top 3 Nominations as of 2024", subtitle = "Source: UEFA") +
+  xlab("Count") +
+  ylab("Player") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+
+ballondor_adj <- read.csv("ballondor_adj.csv")
+ballondor_adj %>% ggplot(aes(x = Winner.count, y = reorder(Player, Winner.count))) +
+  geom_col(color = "white", fill = "gold") +
+  labs(title = "Footballers with Highest Total Ballon D'or Wins Adjusted for Eligibility as of 2024", subtitle = "Source: France Football") +
+  xlab("Count") +
+  ylab("Player") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+
+
+```{r echo=FALSE}
+GOAT_GA %>% group_by(Year, Name) %>% 
+  summarise(Goals = n()) %>% 
+  ggplot(aes(x = Year, y = Goals)) +
+  geom_line(aes(color = Name)) +
+  geom_point(size = 1.5, color = "White") +
+  scale_x_continuous(breaks = seq(2002, 2024, 2)) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  labs(title = "Career Goals + Assists of Ronaldo and Messi Over Time", subtitle = "Source: FBref", color = "Player") +
+  ylab("Goals + Assists") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+
+# Goals only
+GOAT_GA %>% group_by(Year, Name) %>% filter(Goal_or_Assist == "goal") %>% 
+  summarise(Goals = n()) %>% 
+  ggplot(aes(x = Year, y = Goals)) +
+  geom_line(aes(color = Name)) +
+  geom_point(size = 1.5, color = "White") +
+  scale_x_continuous(breaks = seq(2002, 2024, 2)) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  labs(title = "Career Goals of Ronaldo and Messi Over Time", subtitle = "Source: FBref", color = "Player") +
+  ylab("Goals + Assists") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+
+GOAT_GA %>% group_by(Year, Name) %>% filter(Goal_or_Assist == "assist") %>% 
+  summarise(Goals = n()) %>% 
+  ggplot(aes(x = Year, y = Goals)) +
+  geom_line(aes(color = Name)) +
+  geom_point(size = 1.5, color = "White") +
+  scale_x_continuous(breaks = seq(2002, 2024, 2)) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  labs(title = "Career Assists of Ronaldo and Messi Over Time", subtitle = "Source: FBref", color = "Player") +
+  ylab("Goals + Assists") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
++ Pretty close: can do a paired t-test for significant difference.
+
++ Distance: 
+```{r}
+GOAT_GA %>% filter(Distance != "NA") %>% 
+  ggplot(aes(x = Distance)) +
+  geom_density(aes(color = Name), alpha = 0.2) +
+  labs(title = "Distribution of Goal Distance of Ronaldo and Messi", subtitle = "Source: FBref", color = "Player") +
+  ylab("Density")
+```
+
++ xG: violin plot/boxplot of career xG  + line graph for total (sum) xG for each year.
+```{r}
+# Ronaldo vs Messi in xG
+GOAT_GA %>%  filter(xG != "NA") %>% 
+  ggplot(aes(x = as.factor(Year), y = xG)) +
+  geom_boxplot(aes(color = Name))
+
+# Ronaldo vs Messi in PSxG
+GOAT_GA %>% filter(PSxG != "NA") %>% 
+  ggplot(aes(x = as.factor(Year), y = PSxG)) +
+  geom_boxplot(aes(color = Name))
+
+# Relationship between xG and PSxG
+GOAT_GA %>% filter(xG != "NA" & PSxG != "NA") %>% 
+  ggplot(aes(x = xG, y = PSxG)) +
+  geom_point(aes(color = Name)) +
+  geom_smooth(aes(color = Name))
+```
+```{r}
+GOAT_GA %>% filter(Body_Part != "") %>% 
+  ggplot(aes(x = Name)) +
+  geom_bar(aes(fill = Body_Part), position = "fill") +
+  scale_y_percent(n.breaks = 10)
+```
+
+
+```{r}
+# GOAT_stat_season <- fb_player_season_stats(player_url = c(ronaldo_url, messi_url), stat_type = "standard")
+# GOAT_shooting_season <- fb_player_season_stats(player_url = c(ronaldo_url, messi_url), stat_type = "shooting")
+# GOAT_passing_season <- fb_player_season_stats(player_url = c(ronaldo_url, messi_url), stat_type = "passing")
+# GOAT_GCA_season <- fb_player_season_stats(player_url = c(ronaldo_url, messi_url), stat_type = "gca")
+# GOAT_possession_season <- fb_player_season_stats(player_url = c(ronaldo_url, messi_url), stat_type = "possession")
+# GOAT_misc_season <- fb_player_season_stats(player_url = c(ronaldo_url, messi_url), stat_type = "misc")
+# GOAT_joined_season <- 
+#   left_join(GOAT_stat_season, GOAT_shooting_season, by = join_by(player_name, Season, Comp)) %>% 
+#   left_join(GOAT_passing_season, by = join_by(player_name, Season, Comp)) %>% 
+#   left_join(GOAT_GCA_season, by = join_by(player_name, Season, Comp)) %>% 
+#   left_join(GOAT_possession_season, by = join_by(player_name, Season, Comp)) %>% 
+#   left_join(GOAT_misc_season, by = join_by(player_name, Season, Comp))
+# 
+# write.csv(GOAT_joined_season, file = "GOAT_allstat_seasons.csv")
+GOAT_allstat_seasons <- read.csv(file = "GOAT_allstat_seasons.csv")
+```
++ Key concern: lacking statistics for national teams
+
+```{r Goals - PK}
+GOAT_allstat_seasons %>% group_by(player_name, Age.x) %>% 
+  summarise(Goals = sum(G_minus_PK)) %>% 
+  ggplot(aes(x = Age.x, y = Goals)) +
+  geom_line(aes(color = player_name)) +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+
+```{r Passing}
+# Total complete pass
+GOAT_allstat_seasons %>% filter(Cmp_Total != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(Passes = sum(Cmp_Total)) %>% 
+  ggplot(aes(x = Age.x, y = Passes)) +
+  geom_line(aes(color = player_name))
+
+# Percentage of complete pass
+GOAT_allstat_seasons %>% filter(Cmp_percent_Total != "NA") %>% 
+  ggplot(aes(x = player_name, y = Cmp_percent_Total)) +
+  geom_boxplot(fill = "yellow") +
+  geom_jitter(color = "blue")
+```
+
+```{r GCA}
+GOAT_allstat_seasons %>% filter(GCA_GCA != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(GCA = sum(GCA_GCA)) %>% 
+  ggplot(aes(x = Age.x, y = GCA)) +
+  geom_line(aes(color = player_name))
+
+GOAT_allstat_seasons %>% filter(GCA90_GCA != "NA") %>% 
+  ggplot(aes(x = player_name, y = GCA90_GCA)) +
+  geom_boxplot(fill = "yellow") +
+  geom_jitter(color = "blue")
+```
+
+```{r Dribbling}
+# Successful takeons
+GOAT_allstat_seasons %>% filter(Succ_Take_Ons != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(Dribbles = sum(Succ_Take_Ons)) %>% 
+  ggplot(aes(x = Age.x, y = Dribbles)) +
+  geom_line(aes(color = player_name))
+
+# Percentage successful takeons
+GOAT_allstat_seasons %>% filter(Succ_percent_Take_Ons != "NA") %>% 
+  ggplot(aes(x = player_name, y = Succ_percent_Take_Ons)) +
+  geom_boxplot() +
+  geom_jitter()
+
+# Number of dispossesses
+GOAT_allstat_seasons %>% filter(Dis_Carries != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(Dispos = sum(Dis_Carries)) %>% 
+  ggplot(aes(x = Age.x, y = Dispos)) +
+  geom_line(aes(color = player_name)) +
+  geom_point()
+```
+```{r Defensive}
+# messi_Def <- fb_player_season_stats(messi_url, stat_type = "defense")
+# ronaldo_Def <- fb_player_season_stats(ronaldo_url, stat_type =  "defense")
+# GOAT_Def <- rbind(messi_Def, ronaldo_Def)
+# write.csv(GOAT_Def, "GOAT_Defense.csv")
+# GOAT_Defense <- read.csv("GOAT_Defense.csv")
+GOAT_Defense %>% filter(Tkl.Int != "NA") %>% 
+  group_by(player_name, Age) %>% 
+  summarise(Def = sum(Tkl.Int)) %>% 
+  ggplot(aes(x = Age, y = Def)) +
+  geom_line(aes(color = player_name)) +
+  geom_point()
+```
+```{r Fair play}
+GOAT_allstat_seasons %>% filter(CrdY.y != "NA") %>%
+  ggplot(aes(x = player_name, y = CrdY.y)) +
+  geom_boxplot()
+
+GOAT_allstat_seasons %>% filter(CrdR.y != "NA") %>% 
+  ggplot(aes(x = player_name, y = CrdR.y)) +
+  geom_boxplot()
+
+GOAT_allstat_seasons %>% filter(Fls != "NA") %>% 
+  ggplot(aes(x = player_name, y = Fls)) + 
+  geom_boxplot()
+```
+
+

@@ -1,0 +1,485 @@
+---
+title: "Messi or Ronaldo: Ending the GOAT Debate with Data"
+author: "Billy Huynh"
+date: "2024-11-21"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+```
+
+```{r Libraries, message=FALSE, warning=FALSE}
+library(hrbrthemes)
+library(worldfootballR)
+library(tidyverse)
+library(lubridate)
+```
+
+```{r Data, include=FALSE}
+all_GA <- read.csv("all_GA.csv")
+all_GA$Date <- as.Date(all_GA$Date)
+all_GA <- all_GA %>% mutate(Year = year(Date))
+GOAT_GA <- all_GA %>% filter(Name == "Ronaldo" | Name == "Messi")
+all_trophies <- read.csv("Trophies.csv")
+ballondor <- read.csv("ballondor.csv")
+ballondor_adj <- read.csv("ballondor_adj.csv")
+GOAT_allstat_seasons <- read.csv(file = "GOAT_allstat_seasons.csv")
+GOAT_Defense <- read.csv("GOAT_Defense.csv")
+```
+
+# Introduction
+Determining the Greatest of All Time (GOAT) of any sport is always a challenging yet exciting task. In soccer, this has always been a heated debated between Cristiano Ronaldo and Lionel Messi. 
+
+
+![_Cristiano Ronaldo (left) and Lionel Messi (right)_](Ronaldo vs Messi.jpg){width=500px, height=500px}
+
+I will attempt to settle the debate using data from the R package `worldfootballR` which obtains data from online resources. Here are the sources of data for [Ronaldo](https://fbref.com/en/players/dea698d9/Cristiano-Ronaldo) and [Messi](https://fbref.com/en/players/d70ce98e/Lionel-Messi).
+
+# Contents
+**1. Ronaldo and Messi vs the rest**\
+\
+a. Trophies\
+\
+b. Ballon D'or\
+\
+c. Goals and Assist\
+\
+\
+**2. Ronaldo vs Messi**\
+\
+a. Goals and Assists\
+\
+b. Passing\
+\
+c. Chance Creating\
+\
+d. Dribbling\
+\
+e. Defense Participation\
+\
+f. Fair Play Statistics\
+
+# Why Ronaldo and Messi are above the rest?\
+**a. Trophies**\
+\
+```{r Trophies, echo=FALSE, fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+all_trophies %>%  filter(!is.na(Trophies)) %>% ggplot(aes(x = Trophies, y = reorder(Player, Trophies))) +
+  geom_col(color = "white", fill = "gold") +
+  labs(title = "Footballers with Highest Total Career Trophies as of October 2024", subtitle = "Source: talkSPORT") +
+  xlab("Number of Trophies") +
+  ylab("Player") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+
+---
+
+**b. Ballon Dor**\
+\
+**Ballon Dor** is an annual award by France Football given to the best player of the year. It is considered the most prestigious individual award in soccer.\
+\
+```{r Ballon Dor, fig.height=6, fig.width=12}
+ballondor <- ballondor %>% 
+  pivot_longer(cols = c(Winner, Runner.up, Third.Place), 
+               names_to = "Position", 
+               values_to = "Count") %>% 
+  mutate(Position = replace(Position, Position == "Runner.up", "2nd Place")) %>% 
+  mutate(Position = replace(Position, Position == "Third.Place", "3rd Place")) %>% 
+  mutate(Position = factor(Position, levels = c("3rd Place", "2nd Place", "Winner")))
+
+ballondor %>% ggplot(aes(x = Count, y = reorder(Player, Count))) +
+  geom_col(color = "white", aes(fill = Position)) +
+  scale_fill_manual(values = c("orange3", "lightgrey", "gold2")) +
+  labs(title = "Footballers with Highest Total Ballon D'or Top 3 Nominations as of 2024", subtitle = "Source: UEFA") +
+  xlab("Count") +
+  ylab("Player") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+
+ballondor_adj %>% ggplot(aes(x = Winner.count, y = reorder(Player, Winner.count))) +
+  geom_col(color = "white", fill = "gold") +
+  labs(title = "Footballers with Highest Total Ballon D'or Wins Adjusted for Eligibility as of 2024", subtitle = "Source: France Football") +
+  xlab("Count") +
+  ylab("Player") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+
+---
+
+**c. Goals and Assists Statistics**\
+\
+```{r fig.height=6, fig.width=12}
+all_GA %>% 
+  group_by(Name, Goal_or_Assist) %>% 
+  summarise(GC = n()) %>%  
+  ggplot() +
+  aes(y = reorder(Name, GC),
+      x = GC) +
+  geom_col(color = "white", aes(fill = Goal_or_Assist)) +
+  labs(title = "Total Career Goals + Assists of Top Strikers/Forwards in the 21st Century", subtitle = "Source: FBref", fill = "Type") +
+  ylab("Player") +
+  xlab("Total Goal Contribution") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 18,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+
+# Ronaldo vs Messi: Head-to-Head Comparison\
+**1. Goals and Assists**\
+\
+```{r fig.height=6, fig.width=12}
+# Goals only
+GOAT_GA %>% group_by(Year, Name) %>% filter(Goal_or_Assist == "goal") %>% 
+  summarise(Goals = n()) %>% 
+  ggplot(aes(x = Year, y = Goals)) +
+  geom_line(aes(color = Name)) +
+  geom_point(size = 1.5, color = "White") +
+  scale_x_continuous(breaks = seq(2002, 2024, 2)) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  labs(title = "Career Goals of Ronaldo and Messi Over Time", subtitle = "Source: FBref", color = "Player") +
+  ylab("Goals") +
+  theme_ft_rc(axis_title_size = 14, 
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+
+# Assist only
+# GOAT_GA %>% group_by(Year, Name) %>% filter(Goal_or_Assist == "assist") %>%  
+#   summarise(Goals = n()) %>%
+#   ggplot(aes(x = Year, y = Goals)) +
+#   geom_line(aes(color = Name)) +
+#   geom_point(size = 1.5, color = "White") +
+#   scale_x_continuous(breaks = seq(2002, 2024, 2)) +
+#   scale_y_continuous(breaks = seq(0, 100, 10)) +
+#   labs(title = "Career Assists of Ronaldo and Messi Over Time", subtitle = "Source: FBref", color = "Player") +
+#   ylab("Assists") +
+#   theme_ft_rc(axis_title_size = 14,
+#               axis_title_face = "bold",
+#               axis_title_just = "c",
+#               plot_title_size = 16,
+#               plot_title_face = "bold",
+#               subtitle_size = 14,
+#               subtitle_face = "italic")
+GOAT_allstat_seasons %>% filter(Ast.x != "NA") %>% group_by(player_name, Age.x) %>% 
+  summarise(Assists = sum(Ast.x)) %>% 
+  ggplot(aes(x = Age.x, y = Assists)) +
+  geom_line(aes(color = player_name)) +
+  geom_point(size = 1.5, color = "White") +
+  scale_x_continuous(n.breaks = 10) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
+  labs(title = "Career Assists of Ronaldo and Messi Over Time", subtitle = "Source: FBref", color = "Player") +
+  ylab("Assists") +
+  xlab("Age") +
+  scale_x_continuous(breaks = seq(17, 36, 2)) +
+  theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+Pretty even when it comes to goals, but Messi has an edge when it comes to assists!
+
+---
+
+**1. Goals and Assists (cont)**\
+```{r}
+GOAT_GA %>% filter(Distance != "NA") %>% 
+  ggplot(aes(x = Distance)) +
+  geom_density(aes(color = Name), linewidth = 0.7, alpha = 0.2) +
+  geom_vline(xintercept = 16.5, colour = "red") +
+  labs(title = "Distribution of Goal Distance of Ronaldo and Messi", subtitle = "Source: FBref", color = "Player") +
+  ylab("Density") +
+  xlab("Distance (m)") +
+  theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+Similar distribution, even though Messi scores more goals outside the penalty box (higher density to the right of the red vertical line)
+
+---
+
+**1. Goals and Assists (cont)**\
+**xG**: expected goal - the probability of a shot to become a goal at a specific position, calculated right before the shot is taken; measures the quality of CHANCE TO SCORE\
+\
+**PSxG**: Post-shot expected goal - the probability of a shot to become a goal, calculated after the shot has been taken based on the directions and path of the ball; measures the quality of SHOT\
+\
+```{r fig.height=6, fig.width=12}
+GOAT_GA %>% filter(xG != "NA" & PSxG != "NA") %>% 
+  ggplot(aes(x = xG, y = PSxG)) +
+  geom_point(aes(color = Name)) +
+  geom_smooth(aes(color = Name)) +
+  labs(title = "Expected Goals and Post-Shot Expected Goals of Ronaldo and Messi", subtitle = "Source: FBref") + 
+    theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+Quite messy due to overplotting. Messi tends to have higher quality shots when xG is below 0.85, whereas Ronaldo has an edge in shooting quality when xG is higher than 0.85.
+
+---
+
+**1. Goals and Assists (cont)**\
+```{r fig.width=12}
+GOAT_GA %>% filter(Body_Part != "") %>% 
+  ggplot(aes(x = Name)) +
+  geom_bar(aes(fill = Body_Part), position = "fill") +
+  scale_y_percent(n.breaks = 10) +
+  labs(title = "Proportion of Goals Scored by Different Body Parts of Ronaldo and Messi", subtitle = "Source: FBref", y = "Percentage", x = "Player", fill = "Body Part") +
+  theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+\
+Ronaldo appears to be a more versatile goalscorer as he can score a substantial proportion of goals with his non-dominant foot and his head.
+
+---
+
+**2. Passing Ability**\
+**Completed Pass**: a pass that accurately finds a teammate\
+\
+```{r fig.height=6, fig.width=10}
+GOAT_allstat_seasons %>% filter(Cmp_Total != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(Passes = sum(Cmp_Total)) %>% 
+  ggplot(aes(x = Age.x, y = Passes)) +
+  geom_line(aes(color = player_name)) +
+  labs(title = "Total Completed Passes of Ronaldo and Messi Over Time", subtitle = "Source: Fbref", x = "Age", y = "Count", color = "Player") +
+  theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+\
+```{r}
+GOAT_allstat_seasons %>% filter(Cmp_percent_Total != "NA") %>% 
+  ggplot(aes(x = player_name, y = Cmp_percent_Total)) +
+  geom_boxplot(fill = "yellow") +
+  geom_jitter(color = "blue") +
+  labs(title = "Percentages of Completed Passes of Ronaldo and Messi", subtitle = "Source: Fbref", x = "Player", y = "Percentage") +
+  theme_bw()
+```
+\
+Messi has an edge in terms of number of completed pass, but they are pretty even when it comes to percentage. However, Messi seems to be more consistent in delivering accurate pass.
+
+---
+
+**3. Chance Creating**\
+**GCA**: Goal-Creating Actions - the two offensive actions that directly lead to a goal (assists, dribbling past defenders, drawing fouls, etc.)\
+\
+```{r}
+GOAT_allstat_seasons %>% filter(GCA_GCA != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(GCA = sum(GCA_GCA)) %>% 
+  ggplot(aes(x = Age.x, y = GCA)) +
+  geom_line(aes(color = player_name)) +
+  labs(title = "Goal Creating Actions Over Time of Ronaldo and Messi", subtitle = "Source: Fbref", x = "Age", y = "Count", color = "Player") +
+   theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+  
+  
+
+GOAT_allstat_seasons %>% filter(GCA90_GCA != "NA") %>% 
+  ggplot(aes(x = player_name, y = GCA90_GCA)) +
+  geom_boxplot(fill = "yellow") +
+  geom_jitter(color = "blue") +
+  labs(title = "Goal Creating Actions Per 90 Minutes of Ronaldo and Messi", subtitle = "Source: Fbref", x = "Player", y = "Count", color = "Player") + 
+  theme_bw()
+```
+\
+Messi is the clear winner in this category.
+
+---
+
+**4. Dribbling**\
+**Successful take-on**: When a player dribbles past an opponent.\
+\
+**Dispossession**: When a player loses the control of the ball to the opponent.\
+\
+_Note_: Dispossession IS an unsuccessful take-on, but an unsuccessful take-on IS NOT ALWAYS a dispossession. It can include instances in which a player fails to dribble past an opponent but does not lose control of the ball to the opponent (dribble backward, ball goes out of bound, etc.)\
+\
+```{r}
+# Successful takeons
+GOAT_allstat_seasons %>% filter(Succ_Take_Ons != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(Dribbles = sum(Succ_Take_Ons)) %>% 
+  ggplot(aes(x = Age.x, y = Dribbles)) +
+  geom_line(aes(color = player_name)) +
+  labs(title = "Successful Take-ons Over Time by Ronaldo and Messi", subtitle = "Source: Fbref", x = "Age", y = "Count", color = "Player") +
+   theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+\
+```{r}
+# Percentage successful takeons
+GOAT_allstat_seasons %>% filter(Succ_percent_Take_Ons != "NA") %>% 
+  ggplot(aes(x = player_name, y = Succ_percent_Take_Ons)) +
+  geom_boxplot(fill = "yellow") +
+  geom_jitter(color = "blue") +
+  labs(title = "Percentages of Successful Take-Ons by Ronaldo and Messi", subtitle = "Source: Fbref", x = "Player", y = "Percentage") + 
+  theme_bw()
+```
+\
+\
+```{r fig.height=6, fig.width=12}
+# Number of dispossesses
+GOAT_allstat_seasons %>% filter(Dis_Carries != "NA") %>% 
+  group_by(player_name, Age.x) %>% 
+  summarise(Dispos = sum(Dis_Carries)) %>% 
+  ggplot(aes(x = Age.x, y = Dispos)) +
+  geom_line(aes(color = player_name)) +
+  labs(title = "Number of Dispossessions Over Time by Ronaldo and Messi", subtitle = "Source: Fbref", x = "Age", y = "Count", color = "Player") +
+  theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+Even though Ronaldo's dribbling might not be as effective, it involves lower risk than Messi's.
+
+---
+
+**5. Defense Participation**\
+**Tackle**: when a player attempts to take the ball out of the opponent's control.\
+\
+**Interception**: when a player blocks a ball out of its way to its intended opponent target (pass, shot, cross, etc.)\
+\
+```{r fig.height=6, fig.width=12}
+GOAT_Defense %>% filter(Tkl.Int != "NA") %>% 
+  group_by(player_name, Age) %>% 
+  summarise(Def = sum(Tkl.Int)) %>% 
+  ggplot(aes(x = Age, y = Def)) +
+  geom_line(aes(color = player_name)) +
+  labs(title = "Total Number of Tackles and Interceptions Over Time by Ronaldo and Messi", subtitle = "Source: Fbref", x = "Age", y = "Count", color = "Player") +
+  theme_ft_rc(axis_title_size = 14,
+              axis_title_face = "bold",
+              axis_title_just = "c",
+              plot_title_size = 16,
+              plot_title_face = "bold",
+              subtitle_size = 14,
+              subtitle_face = "italic")
+```
+\
+Messi seems to better at defending than Ronaldo, although one generic statistic is not conclusive enough.
+
+---
+
+**6. Fair Play Statistics**\
+**Yellow Card**: a warning for a tough foul/misconduct; 2 yellow cards will result in a red card\
+**Red Card**: for a serious foul/misconduct/unsportsmanship. The player is ejected from the match for the rest of the game. Also, he/she will be banned for at least 1 match of that tournament/league
+\
+```{r}
+GOAT_allstat_seasons %>% filter(CrdY.y != "NA") %>% group_by(player_name, Age.x) %>% 
+  summarise(Cards = sum(CrdY.x)) %>% 
+  ggplot(aes(x = player_name, y = Cards)) +
+  geom_boxplot(fill = "yellow")+
+  geom_jitter(color = "blue") +
+  labs(title = "Statistics of Yellow Cards of Ronaldo and Messi", subtitle = "Source: Fbref", x = "Player", y = "Count") +
+  theme_bw()
+```
+\
+\
+```{r}
+GOAT_allstat_seasons %>% filter(CrdR.y != "NA") %>% group_by(player_name, Age.x) %>% 
+  summarise(Cards = sum(CrdR.y)) %>% 
+  ggplot(aes(x = player_name, y = Cards)) +
+  geom_boxplot(fill = "yellow")+
+  labs(title = "Statistics of Red Cards of Ronaldo and Messi", subtitle = "Source: Fbref", x = "Player", y = "Count") +
+  theme_bw()
+```
+\
+
+```{r}
+GOAT_allstat_seasons %>% filter(Fls != "NA") %>% group_by(player_name, Age.x) %>% 
+  summarise(Fouls = sum(Fls)) %>% 
+  ggplot(aes(x = player_name, y = Fouls)) + 
+  geom_boxplot(fill = "yellow") +
+  geom_jitter(color = "blue") +
+  labs(title = "Statistics of Fouls of Ronaldo and Messi", subtitle = "Source: Fbref", x = "Player", y = "Count") +
+  theme_bw()
+```
+\
+Messi has a more favorable fair play statistics.
+
+# Conclusion\
+Messi is a more all-round, complete player whereas Ronaldo is a more versatile goalscorer.
+
+# Limitation
+
+- Most advanced statistics were limited to 2017 onwards
+- Besides goals and assists comparisons, the rest of the dataset was restricted to club level, not national team.
+- More statistics could be explored, such as important goals/assists (known as clutch goals), goals/assists in non-friendly match, etc.
+
+# Bonus
+
+- Lionel Messi is playing in the MLS for Inter Miami
+- The U.S. will be one of the co-hosts of World Cup 2026, which coincides with her semiquincentennial (250 years) birthday 
+
+
+
+
+
+
+
+
+
+
+
